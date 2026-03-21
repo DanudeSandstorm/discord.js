@@ -12,14 +12,21 @@ class MessageDeleteAction extends Action {
     let message;
 
     if (channel) {
-      message = channel.messages.get(data.id);
-      if (message) {
-        channel.messages.delete(message.id);
-        this.deleted.set(channel.id + message.id, message);
-        this.scheduleForDeletion(channel.id, message.id);
+      if (channel.messages && typeof channel.messages.get === 'function') {
+        message = channel.messages.get(data.id);
+        if (message) {
+          if (typeof channel.messages.delete === 'function') {
+            channel.messages.delete(message.id);
+          }
+          this.deleted.set(channel.id + message.id, message);
+          this.scheduleForDeletion(channel.id, message.id);
+        } else {
+          message = this.deleted.get(channel.id + data.id) || null;
+        }
       } else {
         message = this.deleted.get(channel.id + data.id) || null;
       }
+
       if (message) message.deleted = true;
     }
 
@@ -27,8 +34,10 @@ class MessageDeleteAction extends Action {
   }
 
   scheduleForDeletion(channelID, messageID) {
-    this.client.setTimeout(() => this.deleted.delete(channelID + messageID),
-      this.client.options.restWsBridgeTimeout);
+    this.client.setTimeout(
+      () => this.deleted.delete(channelID + messageID),
+      this.client.options.restWsBridgeTimeout
+    );
   }
 }
 
